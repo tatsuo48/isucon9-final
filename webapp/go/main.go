@@ -21,6 +21,7 @@ import (
 	goji "goji.io"
 	"goji.io/pat"
 	"golang.org/x/crypto/pbkdf2"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	// "sync"
 )
 
@@ -2109,6 +2110,13 @@ func dummyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	tracer.Start(
+		tracer.WithEnv("prod"),
+		tracer.WithService("test-go"),
+		tracer.WithServiceVersion("abc123"),
+	)
+	defer tracer.Stop()
+
 	// MySQL関連のお膳立て
 	var err error
 
