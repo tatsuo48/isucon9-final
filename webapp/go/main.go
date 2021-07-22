@@ -18,9 +18,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
+	goji "goji.io"
 	"goji.io/pat"
 	"golang.org/x/crypto/pbkdf2"
-	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	// "sync"
 )
@@ -2111,8 +2111,9 @@ func dummyHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	tracer.Start(
-		tracer.WithService("isucon"),
 		tracer.WithEnv("prod"),
+		tracer.WithService("test-go"),
+		tracer.WithServiceVersion("abc123"),
 	)
 	defer tracer.Stop()
 
@@ -2160,7 +2161,9 @@ func main() {
 	defer dbx.Close()
 
 	// HTTP
-	mux := muxtrace.NewRouter()
+
+	mux := goji.NewMux()
+
 	mux.HandleFunc(pat.Post("/initialize"), initializeHandler)
 	mux.HandleFunc(pat.Get("/api/settings"), settingsHandler)
 
