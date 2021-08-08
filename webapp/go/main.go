@@ -2167,7 +2167,8 @@ func main() {
 	mux.HandleFunc(pat.Get("/api/stations"), getStationsHandler)
 	mux.HandleFunc(pat.Get("/api/train/search"), trainSearchHandler)
 	mux.HandleFunc(pat.Get("/api/train/seats"), trainSeatsHandler)
-	mux.HandleFunc(newrelic.WrapHandleFunc(app, pat.Post("/api/train/reserve"), trainReservationHandler))
+	pathStr, wrapped := newrelic.WrapHandleFunc(app, "/api/train/reserve", trainReservationHandler)
+	mux.HandleFunc(pat.Post(pathStr), wrapped)
 	//mux.HandleFunc(pat.Post("/api/train/reserve"), trainReservationHandler)
 	mux.HandleFunc(pat.Post("/api/train/reservation/commit"), reservationPaymentHandler)
 
