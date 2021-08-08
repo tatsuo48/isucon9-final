@@ -18,10 +18,10 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	goji "goji.io"
 	"goji.io/pat"
 	"golang.org/x/crypto/pbkdf2"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	// "sync"
 )
 
@@ -2110,15 +2110,11 @@ func dummyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	tracer.Start(
-		tracer.WithEnv("prod"),
-		tracer.WithService("test-go"),
-		tracer.WithServiceVersion("abc123"),
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("isucon9-final"),
+		newrelic.ConfigLicense("3136ba4b079d8dc44ca357b466fbe74ca5ddNRAL"),
+		newrelic.ConfigDistributedTracerEnabled(true),
 	)
-	defer tracer.Stop()
-
-	// MySQL関連のお膳立て
-	var err error
 
 	host := os.Getenv("MYSQL_HOSTNAME")
 	if host == "" {
@@ -2171,7 +2167,8 @@ func main() {
 	mux.HandleFunc(pat.Get("/api/stations"), getStationsHandler)
 	mux.HandleFunc(pat.Get("/api/train/search"), trainSearchHandler)
 	mux.HandleFunc(pat.Get("/api/train/seats"), trainSeatsHandler)
-	mux.HandleFunc(pat.Post("/api/train/reserve"), trainReservationHandler)
+	mux.HandleFunc(newrelic.WrapHandleFunc(app, pat.Post("/api/train/reserve"), trainReservationHandler))
+	//mux.HandleFunc(pat.Post("/api/train/reserve"), trainReservationHandler)
 	mux.HandleFunc(pat.Post("/api/train/reservation/commit"), reservationPaymentHandler)
 
 	// 認証関連
