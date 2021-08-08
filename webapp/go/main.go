@@ -20,7 +20,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	goji "goji.io"
-	"goji.io/pat"
 	"golang.org/x/crypto/pbkdf2"
 	// "sync"
 )
@@ -1921,7 +1920,7 @@ func userReservationResponseHandler(w http.ResponseWriter, r *http.Request) {
 		errorResponse(w, errCode, errMsg)
 		return
 	}
-	itemIDStr := pat.Param(r, "item_id")
+	itemIDStr := wrapHandleFuncParam(r, "item_id")
 	itemID, err := strconv.ParseInt(itemIDStr, 10, 64)
 	if err != nil || itemID <= 0 {
 		errorResponse(w, http.StatusBadRequest, "incorrect item id")
@@ -1958,7 +1957,7 @@ func userReservationCancelHandler(w http.ResponseWriter, r *http.Request) {
 		errorResponse(w, errCode, errMsg)
 		return
 	}
-	itemIDStr := pat.Param(r, "item_id")
+	itemIDStr := wrapHandleFuncParam(r, "item_id")
 	itemID, err := strconv.ParseInt(itemIDStr, 10, 64)
 	if err != nil || itemID <= 0 {
 		errorResponse(w, http.StatusBadRequest, "incorrect item id")
@@ -2115,7 +2114,14 @@ func main() {
 		newrelic.ConfigLicense("3136ba4b079d8dc44ca357b466fbe74ca5ddNRAL"),
 		newrelic.ConfigDistributedTracerEnabled(true),
 	)
-
+	wrapHandleFuncGet := func(path string, f func(w http.ResponseWriter, r *http.Request)) (*wrapHandleFuncPattern, func(w http.ResponseWriter, r *http.Request)) {
+		pathStr, wrapped := newrelic.WrapHandleFunc(app, path, f)
+		return wrapHandleFuncGet(pathStr), wrapped
+	}
+	wrapHandleFuncPost := func(path string, f func(w http.ResponseWriter, r *http.Request)) (*wrapHandleFuncPattern, func(w http.ResponseWriter, r *http.Request)) {
+		pathStr, wrapped := newrelic.WrapHandleFunc(app, path, f)
+		return wrapHandleFuncPost(pathStr), wrapped
+	}
 	host := os.Getenv("MYSQL_HOSTNAME")
 	if host == "" {
 		host = "127.0.0.1"
@@ -2160,26 +2166,25 @@ func main() {
 
 	mux := goji.NewMux()
 
-	mux.HandleFunc(pat.Post("/initialize"), initializeHandler)
-	mux.HandleFunc(pat.Get("/api/settings"), settingsHandler)
+	mux.HandleFunc(wrapHandleFuncPost("/initialize", initializeHandler))
+	mux.HandleFunc(wrapHandleFuncGet("/api/settings", settingsHandler))
 
 	// 予約関係
-	mux.HandleFunc(pat.Get("/api/stations"), getStationsHandler)
-	mux.HandleFunc(pat.Get("/api/train/search"), trainSearchHandler)
-	mux.HandleFunc(pat.Get("/api/train/seats"), trainSeatsHandler)
-	pathStr, wrapped := newrelic.WrapHandleFunc(app, "/api/train/reserve", trainReservationHandler)
-	mux.HandleFunc(pat.Post(pathStr), wrapped)
-	//mux.HandleFunc(pat.Post("/api/train/reserve"), trainReservationHandler)
-	mux.HandleFunc(pat.Post("/api/train/reservation/commit"), reservationPaymentHandler)
+	mux.HandleFunc(wrapHandleFuncGet("/api/stations", getStationsHandler))
+	mux.HandleFunc(wrapHandleFuncGet("/api/train/search", trainSearchHandler))
+	mux.HandleFunc(wrapHandleFuncGet("/api/train/seats", trainSeatsHandler))
+
+	mux.HandleFunc(wrapHandleFuncPost("/api/train/reserve", trainReservationHandler))
+	mux.HandleFunc(wrapHandleFuncPost("/api/train/reservation/commit", reservationPaymentHandler))
 
 	// 認証関連
-	mux.HandleFunc(pat.Get("/api/auth"), getAuthHandler)
-	mux.HandleFunc(pat.Post("/api/auth/signup"), signUpHandler)
-	mux.HandleFunc(pat.Post("/api/auth/login"), loginHandler)
-	mux.HandleFunc(pat.Post("/api/auth/logout"), logoutHandler)
-	mux.HandleFunc(pat.Get("/api/user/reservations"), userReservationsHandler)
-	mux.HandleFunc(pat.Get("/api/user/reservations/:item_id"), userReservationResponseHandler)
-	mux.HandleFunc(pat.Post("/api/user/reservations/:item_id/cancel"), userReservationCancelHandler)
+	mux.HandleFunc(wrapHandleFuncGet("/api/auth", getAuthHandler))
+	mux.HandleFunc(wrapHandleFuncPost("/api/auth/signup", signUpHandler))
+	mux.HandleFunc(wrapHandleFuncPost("/api/auth/login", loginHandler))
+	mux.HandleFunc(wrapHandleFuncPost("/api/auth/logout", logoutHandler))
+	mux.HandleFunc(wrapHandleFuncGet("/api/user/reservations", userReservationsHandler))
+	mux.HandleFunc(wrapHandleFuncGet("/api/user/reservations/:item_id", userReservationResponseHandler))
+	mux.HandleFunc(wrapHandleFuncPost("/api/user/reservations/:item_id/cancel", userReservationCancelHandler))
 
 	fmt.Println(banner)
 	err = http.ListenAndServe(":8000", mux)
