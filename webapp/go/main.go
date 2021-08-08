@@ -20,6 +20,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/newrelic/go-agent/v3/newrelic"
 	goji "goji.io"
+	"goji.io/pat"
 	"golang.org/x/crypto/pbkdf2"
 	// "sync"
 )
@@ -1920,7 +1921,7 @@ func userReservationResponseHandler(w http.ResponseWriter, r *http.Request) {
 		errorResponse(w, errCode, errMsg)
 		return
 	}
-	itemIDStr := wrapHandleFuncParam(r, "item_id")
+	itemIDStr := pat.Param(r, "item_id")
 	itemID, err := strconv.ParseInt(itemIDStr, 10, 64)
 	if err != nil || itemID <= 0 {
 		errorResponse(w, http.StatusBadRequest, "incorrect item id")
@@ -1957,7 +1958,7 @@ func userReservationCancelHandler(w http.ResponseWriter, r *http.Request) {
 		errorResponse(w, errCode, errMsg)
 		return
 	}
-	itemIDStr := wrapHandleFuncParam(r, "item_id")
+	itemIDStr := pat.Param(r, "item_id")
 	itemID, err := strconv.ParseInt(itemIDStr, 10, 64)
 	if err != nil || itemID <= 0 {
 		errorResponse(w, http.StatusBadRequest, "incorrect item id")
