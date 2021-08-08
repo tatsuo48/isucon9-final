@@ -2115,13 +2115,13 @@ func main() {
 		newrelic.ConfigLicense("3136ba4b079d8dc44ca357b466fbe74ca5ddNRAL"),
 		newrelic.ConfigDistributedTracerEnabled(true),
 	)
-	wrapHandleFuncGet := func(path string, f func(w http.ResponseWriter, r *http.Request)) (*wrapHandleFuncPattern, func(w http.ResponseWriter, r *http.Request)) {
+	wrapHandleFuncGet := func(path string, f func(w http.ResponseWriter, r *http.Request)) (*goji.pattern, func(w http.ResponseWriter, r *http.Request)) {
 		pathStr, wrapped := newrelic.WrapHandleFunc(app, path, f)
-		return wrapHandleFuncGet(pathStr), wrapped
+		return pat.Get(pathStr), wrapped
 	}
-	wrapHandleFuncPost := func(path string, f func(w http.ResponseWriter, r *http.Request)) (*wrapHandleFuncPattern, func(w http.ResponseWriter, r *http.Request)) {
+	wrapHandleFuncPost := func(path string, f func(w http.ResponseWriter, r *http.Request)) (*goji.pattern, func(w http.ResponseWriter, r *http.Request)) {
 		pathStr, wrapped := newrelic.WrapHandleFunc(app, path, f)
-		return wrapHandleFuncPost(pathStr), wrapped
+		return pat.Post(pathStr), wrapped
 	}
 	host := os.Getenv("MYSQL_HOSTNAME")
 	if host == "" {
